@@ -1,0 +1,43 @@
+% ExampleMapFile MG test .txt
+% Copyright (C) 2011 Cornell University
+% This code is released under the open-source BSD license.  A copy of this
+% license should be provided with the software.  If not, email:
+% CreateMatlabSim@gmail.com
+
+% File containing map information
+
+% Formatting:
+% wall x1 y1 x2 y2
+%   Order does not matter between the points
+% line x1 y1 x2 y2
+% beacon x y [r g b] ID_tag
+%   [r g b] is the red-green-blue color vector
+% virtwall x y theta
+%   Virtual walls emit from a location, not like real walls
+%   theta is the angle relative to the positive x-axis
+
+% The enclosing walls
+wall -4.5 4.5 -4.5 -4.5
+wall -4.5 -4.5 4.5 -4.5
+wall 4.5 -4.5 4.5 4.5
+wall 4.5 4.5 -4.5 4.5
+
+% Just some reference lines
+line 0.5 0 -0.5 0
+line 0 0.5 0 -0.5
+
+line 1 0 4 0
+line -1 0 -4 0
+
+line 0 1 0 4 
+line 0 -1 0 -4
+
+% A wall in the way.
+wall 2 -1 3 1
+
+% A corner where to get trapped!
+wall -1 2 -3.5 2
+wall -3.5 2 -3.5 3.5
+wall -3.5 3.5 -2 3.5
+wall -2 3.5 -2 3
+wall -1 2 -1 4.5
