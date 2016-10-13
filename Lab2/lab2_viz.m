@@ -6,5 +6,6 @@ for i=1:5
     x = cell2mat(datahistory(:,2));
     y = cell2mat(datahistory(:,3));
     figure
+    %plot(x,y)
     plot(x,y,'.')
 end
