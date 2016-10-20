@@ -1,13 +1,8 @@
 function Lab3(serPort)
-% Robot moves along a path, part blindly, part sensing.
-% serPort is the serial port number (for controlling the actual robot).
 
-%%%% DO NOT MODIFY CODE ABOVE %%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-disp ('==================')
-disp ('Program Starting  ')
-disp ('------------------')
+disp ('|====================|')
+disp ('|Lab3 Robot Initiated|')
+disp ('|--------------------|')
 
 % Sets forward velocity using differential system
 SetDriveWheelsCreate(serPort, 0.5, 0.5);
@@ -93,19 +88,14 @@ while (1)
         SonReF(idx1) = SonRead;
     end
     
-    % If distance out of limits turn to get near/away from the wall
     if ( SonLF(idx1) > distance_to_left+.03 ) 
         turnAngle(serPort, .2, 4);
     elseif ( SonLF(idx1) > distance_to_left+.02 ) 
         turnAngle(serPort, .2, 3);
-    %elseif ( SonLF(idx1) > distance_to_left+.02 ) 
-    %    turnAngle(serPort, .2, 1);
     elseif ( SonLF(idx1) < distance_to_left-.03 ) 
         turnAngle(serPort, .2, -4);
     elseif ( SonLF(idx1) < distance_to_left-.02 ) 
         turnAngle(serPort, .2, -3);
-    %elseif ( SonLF(idx1) < distance_to_left-.02 ) 
-    %    turnAngle(serPort, .2, -1);
     end
     
     % It too near a wall it means needs to turn sharp right!
@@ -119,14 +109,6 @@ while (1)
     
     % Reset straight line and advance
     SetDriveWheelsCreate(serPort, 0.5, 0.5);
-    
-%     if(SonLF(idx1) > distance_to_left)
-%         SetDriveWheelsCreate(serPort, 0.25, 0.1);
-%     elseif (SonLF(idx1) < distance_to_left)
-%         SetDriveWheelsCreate(serPort, 0.1, 0.25);
-%     else
-%         SetDriveWheelsCreate(serPort, 0.5, 0.5);
-%     end
     
     if (SonFF(idx1) < distance_to_finish && SonReF(idx1) > 1.5  && SonReF(idx1) < 3 && SonRiF(idx1) == 100 && Dist1 > 10)
        break; %finish! 
@@ -142,7 +124,7 @@ end
     disp (SonLF(idx1))
     disp (Dist1)
     
-    load('path2.mat')
-    figure
-    plot(cell2mat(datahistory(:,2)),cell2mat(datahistory(:,3)));
+    %load('path2.mat')
+    %figure
+    %plot(cell2mat(datahistory(:,2)),cell2mat(datahistory(:,3)));
     
