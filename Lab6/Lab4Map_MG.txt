@@ -1,0 +1,47 @@
+% ExampleMapFile MG Lab 4 .txt
+% Copyright (C) 2016 De Montfort University
+% This code is released under the open-source BSD license.  A copy of this
+% license should be provided with the software.
+
+% File containing map information
+% Robot starting position: any (test position 4(H) 0(V) heading to the wall's corner)
+% Robot ending position   -4(H) -2(V) heading West (pi)
+% Swapped staring/ending are acceptable
+
+% The enclosing walls
+wall -4.5 4.5 -4.5 -4.5
+wall -4.5 -4.5 4.5 -4.5
+wall 4.5 -4.5 4.5 4.5
+wall 4.5 4.5 -4.5 4.5
+
+% Just some reference lines
+line -4 -3.25 -4 -2.75
+line -4.25 -3 -4 -3
+
+% A beacon to find the start
+beacon -4 -4 [0 0 1] s
+
+% Lines showing the desired trajectory
+line -4 -3 3 -3
+line 3 -3 3 1
+line 3.01 -2.95 3.01 1.05
+line 3 1 2 1
+line 2 1 2 -2
+line 2 -2 1 -2
+line 1 -2 1 1
+line 1 1 0 1
+line 0 1 0 -2
+line 0 -2 -1 -2
+line -1 -2 -1 1
+line -1 1 -2 1
+line -2 1 -2 -2
+line -2 -2 -4 -2
+
+% Wall inside trajectory
+wall -4.5 -2.5 2.5 -2.5
+wall 2.5 -2.5 2.5 0.5
+wall 0.5 -2.5 0.5 0.5
+wall -1.5 -2.5 -1.5 0.5
+
+%extra wall used as an obstacle
+wall -1 -4 -1 -4.2
