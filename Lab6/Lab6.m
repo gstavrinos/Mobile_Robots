@@ -15,9 +15,12 @@ disp ('--------------------')
 SetDriveWheelsCreate(serPort, 0.5, 0.5);
     
 % Proportional Gain
-Kp = 100;
+Kp = 1;
 Ki = 0.0001;
-Kd = 100;
+Kd = 2980;
+%Kp = 100;
+%Ki = 0.0001;
+%Kd = 100;
     
 % Read the distance (odometry) sensor and initialize distance accumulator
 DistRead = DistanceSensorRoomba(serPort);
@@ -129,7 +132,7 @@ while(wandering || homing || following)
     if (following)
         
         %are we there yet?!
-        if (Dist1 >= 10)
+        if (Dist1 >= 18)
            following = 0;
            wandering = 0;
            homing = 0;
