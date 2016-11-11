@@ -15,9 +15,9 @@ disp ('--------------------')
 SetDriveWheelsCreate(serPort, 0.5, 0.5);
     
 % Proportional Gain
-Kp = 1;
-Ki = 0.0001;
-Kd = 2980;
+Kp = 165;
+Ki = 0.001;
+Kd = 1000;
 %Kp = 100;
 %Ki = 0.0001;
 %Kd = 100;
@@ -25,6 +25,14 @@ Kd = 2980;
 % Read the distance (odometry) sensor and initialize distance accumulator
 DistRead = DistanceSensorRoomba(serPort);
 Dist1 = 0;
+
+% Read the back sonar so that we know when to stop!
+SonRead = ReadSonar(serPort, 4);
+if ~any(SonRead) 
+    SonReF(1) = 100;
+else
+    SonReF(1) = SonRead;
+end
 
 % Read the Lidar. It returns a vector of 680 values, spread symmetrically
 % for 120 degrees each side of the front.
@@ -40,8 +48,6 @@ LidarRes = LidarSensorCreate(serPort);
 wandering = 1;
 homing = 0;
 following = 0;
-distance_to_left = 0.5;
-distance_to_finish = 0.5;
 e100 = zeros(100,1);
 
 t = 0;
@@ -61,6 +67,13 @@ while(wandering || homing || following)
     LidarRes = LidarSensorCreate(serPort);
     [LidarM, LidarD] = min(LidarRes(341:681));
     [LidarM2, LidarD2] = min(LidarRes(1:341));
+    
+    SonRead = ReadSonar(serPort, 4);
+    if ~any(SonRead) 
+        SonReF(1) = 100;
+    else
+        SonReF(1) = SonRead;
+    end
 
     
     %------------------------------------------------------------------------------
@@ -132,11 +145,11 @@ while(wandering || homing || following)
     if (following)
         
         %are we there yet?!
-        if (Dist1 >= 18)
+        if (Dist1 >= 17 && SonReF(1) > 2.1 && SonReF(1) < 100)
            following = 0;
            wandering = 0;
            homing = 0;
-           disp('I think I reached my goal! :)');
+           disp('I reached my goal! :)');
            continue
         end
         
