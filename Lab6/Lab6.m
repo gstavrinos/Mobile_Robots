@@ -15,12 +15,11 @@ disp ('--------------------')
 SetDriveWheelsCreate(serPort, 0.5, 0.5);
     
 % Proportional Gain
-Kp = 165;
+Kp = 200;
+% Integral Gain
 Ki = 0.001;
-Kd = 1000;
-%Kp = 100;
-%Ki = 0.0001;
-%Kd = 100;
+% Differential Gain
+Kd = 150;
     
 % Read the distance (odometry) sensor and initialize distance accumulator
 DistRead = DistanceSensorRoomba(serPort);
