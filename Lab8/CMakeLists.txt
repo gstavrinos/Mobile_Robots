@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 2.8)
+project( Lab8 )
+find_package( OpenCV REQUIRED )
+add_executable( Lab8 main.cpp )
+add_executable( Lab8_2 main_2.cpp )
+target_link_libraries( Lab8 ${OpenCV_LIBS} )
+target_link_libraries( Lab8_2 ${OpenCV_LIBS} )
