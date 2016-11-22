@@ -45,6 +45,7 @@ int main(int argc, char *argv[])
 	// Create handles and titles for interface Windows
 	char* win1 = "Camera Image";
 	char* win2 = "Binary Image";
+	char* win3 = "Test Image";
 
 	// Variables for iterations
 	int i, j;
@@ -75,6 +76,7 @@ int main(int argc, char *argv[])
 	// Create and Open the inetrface windows
 	cvNamedWindow(win1, CV_WINDOW_AUTOSIZE );
 	cvNamedWindow(win2, CV_WINDOW_AUTOSIZE );
+	cvNamedWindow(win3, CV_WINDOW_AUTOSIZE );
 
 	// Add widgets for thresholding (the control bars)
 	// these can be used to experiment and try detecting other objects
@@ -171,6 +173,11 @@ int main(int argc, char *argv[])
 		//}
 
 		Mat gray = cvarrToMat(v);
+		blur(gray, gray, Size(20,20));
+		IplImage* image3 =  cvCreateImage(cvSize(gray.cols, gray.rows), IPL_DEPTH_8U, 1);
+		IplImage ipltemp2 = gray;
+		cvCopy(&ipltemp2,image3);
+		cvShowImage(win3, &ipltemp2);
 		//Mat image = cvarrToMat(frame);
 	    //cvtColor(image, gray, CV_BGR2GRAY);
 	    Canny(gray, gray, 100, 200, 3);
@@ -182,10 +189,10 @@ int main(int argc, char *argv[])
 	    Mat drawing = Mat::zeros( gray.size(), CV_8UC3 );
 	    for( int i = 0; i< contourss.size(); i++ )
 	    {
-	    	if(arcLength(contourss[i], false) > 200){
+	    	//if(arcLength(contourss[i], false) > 0){
 		        Scalar color = Scalar( 0, 0, 255);
-		        drawContours( drawing, contourss, i, color, 100, 8, hierarchy, 0, Point() );
-	    	}
+		        drawContours( drawing, contourss, i, color, CV_FILLED, 8, hierarchy, 0, Point() );
+	    	//}
 	    }  
 
 		/*if (max > 100){
@@ -251,8 +258,8 @@ int main(int argc, char *argv[])
 		//cvEllipse(frame, cvPoint((int)meanX,(int)meanY), cvSize((int)sigmaX,(int)sigmaY), 0, 0, 360, cvScalar(20,20,255,0), 4, 8, 0);
 
 		// Show the images in the interface windows
-		IplImage* image2 =  cvCreateImage(cvSize(drawing.cols,drawing.rows),8,3);
-		IplImage ipltemp=drawing;
+		IplImage* image2 =  cvCreateImage(cvSize(drawing.cols, drawing.rows), 8, 3);
+		IplImage ipltemp = drawing;
 		cvCopy(&ipltemp,image2);
 		cvShowImage(win2, &ipltemp);
 		cvShowImage(win1, frame);
