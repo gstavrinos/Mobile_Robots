@@ -1,4 +1,0 @@
-/home/george/DMU/Mobile_Robots/Lab8/CMakeFiles/rebuild_cache.dir
-/home/george/DMU/Mobile_Robots/Lab8/CMakeFiles/Lab8_2.dir
-/home/george/DMU/Mobile_Robots/Lab8/CMakeFiles/edit_cache.dir
-/home/george/DMU/Mobile_Robots/Lab8/CMakeFiles/Lab8.dir
