@@ -33,13 +33,11 @@ int main(int argc, char *argv[])
 	IplImage* s;
 	IplImage* v;
 
-	// Threshold for hue and saturation values
-	// This values can be found empirically (for my apple!)
-	// or by analysing the images, etc...
-	int hLowThresh = 38;//170;
-	int hHighThresh = 90;//180;
-	int sLowThresh = 60;//115;
-	int sHighThresh = 255;//210;
+	// My object-specific values
+	int hLowThresh = 38;
+	int hHighThresh = 90;
+	int sLowThresh = 60;
+	int sHighThresh = 255;
 
 	// Are we trying to detect our object in a dark room?
 	bool darkness = false;
