@@ -48,4 +48,4 @@ wall -1 -4 -1 -4.2
 
 % One more obstalce, this time blocking the path
 % that should be followed
-wall  1 -2.5 1 -3.2
+%wall  1 -2.5 1 -3.2

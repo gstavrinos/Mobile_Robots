@@ -1,0 +1,112 @@
+Current Task:w
+Current Position:UNKNOWN
+Current Orientation:UNKNOWN
+----------------------------
+Current Task:w
+Current Position:RE
+Current Orientation:D
+----------------------------
+Current Task:w
+Current Position:BE
+Current Orientation:L
+----------------------------
+Current Task:w
+Current Position:RE
+Current Orientation:D
+----------------------------
+Current Task:w
+Current Position:RE
+Current Orientation:U
+----------------------------
+Current Task:w
+Current Position:BF
+Current Orientation:U
+----------------------------
+Current Task:w
+Current Position:RB
+Current Orientation:UNKNOWN
+----------------------------
+Current Task:w
+Current Position:BB
+Current Orientation:D
+----------------------------
+Current Task:w
+Current Position:RA
+Current Orientation:UNKNOWN
+----------------------------
+Current Task:w
+Current Position:BA
+Current Orientation:U
+----------------------------
+Current Task:w
+Current Position:RA
+Current Orientation:UNKNOWN
+----------------------------
+Current Task:f
+Current Position:BA
+Current Orientation:U
+----------------------------
+Current Task:f
+Current Position:RA
+Current Orientation:UNKNOWN
+----------------------------
+Current Task:f
+Current Position:GA
+Current Orientation:U
+----------------------------
+Current Task:f
+Current Position:RB
+Current Orientation:UNKNOWN
+----------------------------
+Current Task:f
+Current Position:GB
+Current Orientation:L
+----------------------------
+Current Task:f
+Current Position:RC
+Current Orientation:D
+----------------------------
+Current Task:f
+Current Position:BC
+Current Orientation:L
+----------------------------
+Current Task:f
+Current Position:RC
+Current Orientation:D
+----------------------------
+Current Task:f
+Current Position:BC
+Current Orientation:L
+----------------------------
+Current Task:f
+Current Position:GC
+Current Orientation:L
+----------------------------
+Current Task:f
+Current Position:RD
+Current Orientation:D
+----------------------------
+Current Task:f
+Current Position:BD
+Current Orientation:L
+----------------------------
+Current Task:f
+Current Position:RD
+Current Orientation:D
+----------------------------
+Current Task:f
+Current Position:BD
+Current Orientation:L
+----------------------------
+Current Task:f
+Current Position:GD
+Current Orientation:L
+----------------------------
+Current Task:f
+Current Position:RE
+Current Orientation:D
+----------------------------
+Current Task:f
+Current Position:BE
+Current Orientation:L
+----------------------------
