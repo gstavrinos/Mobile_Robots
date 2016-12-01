@@ -58,7 +58,7 @@ function Lab9(serPort)
     last_pos_estimation = 'UNKNOWN';
     last_orient_estimation = 'UNKNOWN';
     
-    % I am going to use this variable to detect the major region changes by
+    % I am going to use this variable to detect the green region changes by
     % detecting if the PID controller is sending a major turning command.
     heavy_turning = 0;
 
@@ -261,6 +261,7 @@ function Lab9(serPort)
                    plan = ['w', 'h', 'f'];
                    currPos = 'UNKNOWN';
                    currOrient = 'UNKNOWN';
+                   wandering_init = 1;
                    disp('I am lost! Starting Task 1 - wandering');
                end
             else
