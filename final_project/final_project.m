@@ -88,8 +88,16 @@ function final_project(serPort)
     lost_counter = 0;
     
     % Variable used to check if the robot is exiting or entering the
-    % starting room
+    % starting room.
     exiting = 1;
+    
+    % Variable used to check if the beacon is near the door of the starting
+    % room.
+    check_surroundings = 1;
+    
+    % A counter to estimate (roughly) the angles we have turned during the
+    % check_surroundings procedure.
+    angle_cnt = 0;
 
     % Main loop
     while(size(plan) > 0)
@@ -161,9 +169,22 @@ function final_project(serPort)
                         turnAngle(serPort, .2, 70);
                         t = 1;
                     end
-                    PID_controller(LidarL/4, LidarR/4)
+                    PID_controller(LidarL/4, LidarR/4);
                 elseif plan(1) == 1
                     door_alignment
+                elseif plan(1) == 3
+                    if check_surroundings
+                        if angle_cnt < 300
+                           turnAngle(serPort, .2, 10);
+                           angle_cnt = angle_cnt + 10;
+                        elseif approx(LidarMmid,2,.2)
+                            check_surroundings = 0;
+                        else
+                            SetDriveWheelsCreate(serPort, .5, .5);
+                        end
+                    else
+                       PID_controller(LidarL/4, LidarR/4);
+                    end
                 end
             end
         %end
@@ -217,6 +238,8 @@ function final_project(serPort)
            if SonFF < 100
               turnAngle(serPort, .2, 10); 
            end
+       else %entering
+           
        end
     end
 
@@ -250,14 +273,15 @@ function final_project(serPort)
         elseif plan(1) == 1 && SonFF == 100
             disp('Aligned with door!');
             plan = [2, 3, 4, 5, 6];
-        elseif plan(1) == 2 && approx(LidarMmid,3.5,.1)
+        elseif plan(1) == 2 && approx(SonReF,3,.1)
             disp('I am out of the door!');
+            exiting = 0;
             plan = [3, 4, 5, 6];
-            
-            % Are we there yet?!
-%             if (Dist1 >= 17 && SonReF(1) > 2.1 && SonReF(1) < 100)
-%                plan = [];
-%             end
+        elseif plan(1) == 3
+            if(any(Camera))
+               plan = [4, 5, 6];
+               disp('I found the beacon!');
+            end
 
             % Are we lost?! (checking if left side is >= 1m for 5 
             % consecutive measurements)
