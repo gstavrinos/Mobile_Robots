@@ -138,7 +138,7 @@ function final_project(serPort)
                     wander
                 elseif plan(1) == 6
                     disp('task6!');
-                    center%TODO
+                    reach_goal
                 end
             else
                 break;
@@ -156,6 +156,18 @@ function final_project(serPort)
     
     % Helper functions
     
+    function reach_goal
+        if LidarRes(341) < 3.5
+            if SonLF < 3 && SonLF > 1 && approx(SonLF, SonRiF,.1)
+                SetDriveWheelsCreate(serPort, 0.5, 0.5);
+            else
+                center
+            end
+        else
+            SetDriveWheelsCreate(serPort, 0.5, 0.5);
+        end
+    end
+        
     function wander
         if get_back
             turnAngle(serPort, .2, 180);
@@ -261,6 +273,7 @@ function final_project(serPort)
                 plan = [2, 3, 4, 5, 1, 6];
             elseif facing_wall && SonFF == 100
                 disp('Aligned with door!2');
+                t = 1;
                 plan = [6];
             end
         elseif plan(1) == 2 && approx(SonReF,3,.1)
@@ -287,7 +300,7 @@ function final_project(serPort)
                plan = [1, 6];
             end
         elseif plan(1) == 6
-            if approx(SonRiF,SonLF,.1) && approx(SonFF,2,.1) && SonLF < 100
+            if approx(SonFF,1.5,.05) && SonLF < 100 && SonReF == 100
                plan = [];
             end
         end
