@@ -1,8 +1,8 @@
 function final_project(serPort)
 
-    disp ('=============================')
-    disp ('Final Project Robot Initiated')
-    disp ('-----------------------------')
+    disp ('===============================')
+    disp ('|Final Project Robot Initiated|')
+    disp ('-------------------------------')
 
     % Sets forward velocity using differential system
     SetDriveWheelsCreate(serPort, 0.5, 0.5);
@@ -42,7 +42,10 @@ function final_project(serPort)
     else
         SonReF(1) = SonRead;
     end
-
+    
+    % Read bumper and drop sensors
+    [BumpRight, BumpLeft, WheDropRight, WheDropLeft, WheDropCaster, BumpFront] = BumpsWheelDropsSensorsRoomba(serPort);
+    
     % Read the Lidar. It returns a vector of 680 values, spread symmetrically
     % for 120 degrees each side of the front.
     % Mid-range (element 341) is the front.
@@ -56,25 +59,25 @@ function final_project(serPort)
     [LidarR, LidarD2] = min(LidarRes(1:341));
 
     % Get camera reading
-    [Camera, Dist] = CameraSensorCreate(serPort);
+    [Camera, bDist] = CameraSensorCreate(serPort);
 
     % Check front ~45 degrees
     [LidarMmid, LidarDmid] = min(LidarRes(216:466));
 
     % The possible tasks are coded like this:
     % 0 = find the center of the starting room
-    % 1 = face the exit of the starting room
+    % 1 = face the door of the starting room
     % 2 = exit the starting room
     % 3 = find beacon
-    % 4 = approach beacon
+    % 4 = perpendicularly bump the beacon
     % 5 = find the entrance to the starting room
-    % 6 = enter the starting room
+    % 6 = reach the goal
     
-    % This our plan. The sequence of tasks.
-    plan = [5, 1, 6];
+    % This our plan. The sequence of planned tasks.
+    plan = [ 4, 5, 1, 6];
     
     % Obstacle Avoidance is disabled for now
-    %obstacle_avoidance = 0;
+    obstacle_avoidance = 0;
 
     % Initialize the Integral buffer
     e100 = zeros(100,1);
@@ -84,11 +87,11 @@ function final_project(serPort)
     
     % Variable used to check if the robot is exiting or entering the
     % starting room.
-    exiting = 0;%TODO
+    exiting = 0;%TODO change to 1 after tests
     
     % Variable used to check if the beacon is near the door of the starting
     % room.
-    check_surroundings = 0;%TODO
+    check_surroundings = 0;%TODO change to 1 after tests
     
     % A counter to estimate (roughly) the angles we have turned during the
     % check_surroundings procedure.
@@ -103,6 +106,16 @@ function final_project(serPort)
     
     % Variable that states the side of the found door
     door_on_the_left = 1;
+    
+    % Variable that states that our last 'blind' turn was a left one
+    left_turn = 0;
+    
+    % Lost beacon counter that is used to make sure that we have really
+    % lost sight of the beacon
+    b_cnt = 0;
+    
+    % Variable that states if the robot is aligned with the beacon's wall
+    aligned = 0;
 
     % Main loop
     while(size(plan) > 0)
@@ -112,38 +125,40 @@ function final_project(serPort)
         updateSensors
         
         % Reset obstacle avoidance
-        %obstacle_avoidance = 0;
+        obstacle_avoidance = 0;
         
         % Increase timer
         t = t + 1;
         
-        % Don't change anything on the planned tasks if we had to run a
-        % reactive task in this loop
-        %if ~obstacle_avoidance
-            % Change the plan based on our new environment
-            planManager
-            
+        % Change the plan based on our new environment
+        planManager
+
+        if size(plan) > 0
             % Run the corresponding planned task
-            if size(plan) > 0
-                % Task-0: Centering in starting room
-                % Task-2: Exit the starting room
-                if plan(1) == 0 || plan(1) == 2
-                    center
-                % Task-1: Align with the door
-                elseif plan(1) == 1
-                    door_alignment
-                % Task-3: Search for the beacon
-                % Task-5: Search for the entrance
-                elseif plan(1) == 3 || plan(1) == 5
-                    wander
-                elseif plan(1) == 6
-                    disp('task6!');
-                    reach_goal
+            % Task-0: Center in starting room
+            % Task-2: Exit the starting room
+            if plan(1) == 0 || plan(1) == 2
+                center
+            % Task-1: Align with the door
+            elseif plan(1) == 1
+                door_alignment
+            % Task-3: Search for the beacon
+            % Task-5: Search for the entrance
+            elseif plan(1) == 3 || plan(1) == 5
+                if ~get_back % Do not try to avoid the bumped 'obstacle!'
+                    obstacleAvoidance
                 end
-            else
-                break;
+                if ~obstacle_avoidance
+                    wander
+                end
+            % Task-4: Bump the beacon
+            elseif plan(1) == 4
+                bumpBeacon
+            % Task-6: Reach the goal
+            elseif plan(1) == 6
+                reach_goal
             end
-        %end
+        end
     end
 
     % Stop motors
@@ -154,8 +169,7 @@ function final_project(serPort)
     % ------------------------------------------------------------------
     
     
-    % Helper functions
-    
+    % Final Planned Task - Reach the goal
     function reach_goal
         if LidarRes(341) < 3.5
             if SonLF < 3 && SonLF > 1 && approx(SonLF, SonRiF,.1)
@@ -167,10 +181,157 @@ function final_project(serPort)
             SetDriveWheelsCreate(serPort, 0.5, 0.5);
         end
     end
-        
+
+    % Planned Task - Bump the beacon!
+    function bumpBeacon
+        % The simple homing task (without obstacle avoidance) is used as
+        % it was provided.
+%         if (any(Camera) && abs(Camera) > 0.05)
+%             turnAngle (serPort, .2, (Camera * 180/3.1415));
+%         end 
+%        if any(Camera)
+%             if approx(LidarMmid, bDist, .5)
+%                 beacon_laser_index = fix(341 - Camera * 180/3.1415 * (120/681))
+%                 %PID_controller(LidarRes(beacon_laser_index-10),LidarRes(beacon_laser_index+10))
+%                 %PID_controller(max(LidarRes(beacon_laser_index-10:beacon_laser_index)),max(LidarRes(beacon_laser_index:beacon_laser_index+10)))
+%                 min_ = 100;
+%                 max_ = -1;
+%                 for i=beacon_laser_index-10:beacon_laser_index+10
+%                    if 
+%                 end
+%                 min(LidarRes(beacon_laser_index-10:beacon_laser_index+10))
+%                 max(LidarRes(beacon_laser_index-10:beacon_laser_index+10))
+%                 bDist
+%                 %PID_controller(min(LidarRes(beacon_laser_index-10:beacon_laser_index+10)),bDist)
+%             else
+%                 if abs(Camera) > 0.05
+%                     turnAngle (serPort, .2, (Camera * 6));
+%                 end
+%             end
+%             
+%         end
+        i1 = 0;
+        i2 = 0;
+        l_space = 0;
+        r_space = 0;
+        if any(Camera) && bDist < 4
+            b_cnt = 0;
+            beacon_laser_index = fix(341 + Camera * 180/pi * (681/120))
+            c = min(LidarRes(beacon_laser_index-1:beacon_laser_index+1));
+            
+            
+            for i=beacon_laser_index:-1:1
+                limit = min (0.5, LidarRes(i)/4);
+                if (~approx(LidarRes(i),c,limit)) || LidarRes(i) == 4
+                   i1 = i+1;
+                   break;
+                end
+            end
+            for i=beacon_laser_index:681
+                if (~approx(LidarRes(i),c,limit)) || LidarRes(i) == 4
+                   i2 = i-1;
+                   break;
+                end
+            end
+            i1
+            i2
+            if i1 > 0 && i2 > 0
+                l1 = LidarRes(i1)
+                l2 = LidarRes(i2)
+            end
+            % if the cluster is not big enough
+            if ~approx(i1, i2, 15) && bDist < 2.5 && ~aligned
+                % Check the side with the most space to move!
+                l_space = sum(LidarRes(341:681));
+                r_space = sum(LidarRes(1:341));
+                if l_space > r_space
+                   %turnAngle(serPort, .2, -5)
+                   left_turn = 1;
+                else
+                   %turnAngle(serPort, .2, 5) 
+                   left_turn = 0;
+                end
+%             else
+%                 for i=beacon_laser_index:-1:1
+%                     if ~approx(LidarRes(i),c,.5)
+%                        i1 = i+1;
+%                        break;
+%                     end
+%                 end
+%                 for i=beacon_laser_index:681
+%                     if ~approx(LidarRes(i),c,.5)
+%                        i2 = i-1;
+%                        break;
+%                     end
+%                 end
+            else
+                if bDist < 2.5 && ~aligned
+                    disp('WARNING: Bad angle with the wall!!!!!!!');
+                end
+            end
+            
+            if i1 > 0 && i2 > 0
+                sel_index = i1;
+                if LidarRes(i2) > LidarRes(i1)
+                   sel_index = i2
+                end
+                if ~approx(l1, l2, 0.05)
+                    ang = -(341-sel_index)*120/681
+                    % If we are close enough, just align with the center of
+                    % the wall!
+                    if approx(l1, l2, 0.25) && LidarRes(341) < 0.3
+                        turnAngle(serPort, .2, ang/2);
+                        disp('aligned!');
+                        aligned = 1;
+                    else
+                       turnAngle(serPort, .2, ang); 
+                    end
+                end
+            end
+            
+            % Reset straight line and advance
+%         elseif ~any(Camera) % The beacon is outside the FOV of the camera!
+%             b_cnt = b_cnt + 1;
+%             if b_cnt >= 5
+%                 disp('beacon?!');
+%                 if left_turn
+%                    turnAngle(serPort, .2, -5);
+%                 else
+%                    turnAngle(serPort, .2, 5); 
+%                 end
+%             end
+        end
+            SetDriveWheelsCreate(serPort, 0.2, 0.2);
+%         %LidarRes
+%         for i=1:681
+%                 if ~approx(LidarRes(i),prev_v,.5) && prev_v < 4 && LidarRes(i) < 4
+%                    if i1 == 0
+%                        i1 = i;
+%                    else
+%                        i2 = i-1;
+%                        if i2 > i1
+%                            i1
+%                            i2
+%                             break;
+%                        else
+%                            i1 = 0;
+%                            i2 = 0;
+%                        end
+%                    end
+%                 end
+%             prev_v = LidarRes(i);
+%         end
+    end
+    
+    % Planned Task - Explore the map
     function wander
         if get_back
+            SetDriveWheelsCreate(serPort, 0, 0);
+            pause(.1)
+            SetDriveWheelsCreate(serPort, -0.5, -0.5);
+            pause(.5)
             turnAngle(serPort, .2, 180);
+            get_back = 0;
         elseif check_surroundings
             if angle_cnt < 300
                turnAngle(serPort, .2, 10);
@@ -184,7 +345,35 @@ function final_project(serPort)
            center
         end
     end
+
+    % Planned Task - Align with the door
+    function door_alignment
+       if exiting
+           if SonFF < 100
+              turnAngle(serPort, .2, 10); 
+           end
+       else %entering
+          if door_on_the_left
+            turnAngle(serPort, .2, 10); 
+          else
+            turnAngle(serPort, .2, -10);
+          end;
+           if SonFF < 100 && ~facing_wall
+               facing_wall = 1;
+           end
+       end
+    end
+
+    % Reactive task
+    function obstacleAvoidance
+        % Try to avoid the obstacles
+        if (LidarMmid < 0.3)
+            obstacle_avoidance  = 1;
+            turnAngle (serPort, .2, (LidarDmid-341)/4);
+        end
+    end
     
+    % Helper function that calls the PID controller (part of the planned tasks)
     function center
         % Override the PID controller, to make the process faster, and
         % safer!
@@ -195,6 +384,7 @@ function final_project(serPort)
         PID_controller(LidarL/4, LidarR/4);
     end
     
+    % The PID Controller implementation
     function PID_controller(value1, value2)
         % Now do a simple porportional action. This part is used as was
         % provided, but with a change on the variable names.
@@ -229,64 +419,40 @@ function final_project(serPort)
         % for now!
     end
 
-    function door_alignment
-       if exiting
-           if SonFF < 100
-              turnAngle(serPort, .2, 10); 
-           end
-       else %entering
-          if door_on_the_left
-            turnAngle(serPort, .2, 10); 
-          else
-            turnAngle(serPort, .2, -10);
-          end;
-           if SonFF < 100 && ~facing_wall
-               facing_wall = 1;
-           end
-       end
-    end
-
     % This is a method that manages the different planned tasks. This could
     % be described as a reactive task, although it is related to the
     % requirements of the plan.
     function planManager
+        %plan(1)
         if plan(1) == 0
             if exiting
                 if SonRiF == 100 || SonLF == 100 % The robot is facing down or up!
                     if approx(SonReF,SonFF,.1) && (approx(SonRiF,1.5,.2) || approx(SonLF,1.5,.2))
                        plan = [1, 2, 3, 4, 5, 1, 6];
-                        disp('CENTEEEEER');
                     end
                 elseif SonFF == 100 || SonReF == 100 % The robot is facing left or right!
                     if approx(SonRiF,SonLF,.1) && approx(SonFF,2,.2)
                        plan = [1, 2, 3, 4, 5, 1, 6];
-                        disp('CENTEEEEER');
                     end
                 elseif approx(SonFF,SonReF,.1) && approx(SonRiF,SonLF,.1)
                     plan = [1, 2, 3, 4, 5, 1, 6];
-                    disp('CENTEEEEER');
                 end
             end
         elseif plan(1) == 1
             if exiting && SonFF == 100
-                disp('Aligned with door!1');
                 plan = [2, 3, 4, 5, 1, 6];
             elseif facing_wall && SonFF == 100
-                disp('Aligned with door!2');
                 t = 1;
                 plan = [6];
             end
         elseif plan(1) == 2 && approx(SonReF,3,.1)
-            disp('I am out of the door!');
             exiting = 0;
             plan = [3, 4, 5, 1, 6];
         elseif plan(1) == 3
             if(any(Camera))
                plan = [4, 5, 1, 6];
-               disp('I found the beacon!');
             end
-        elseif plan(1) == 4
-            % skip task 4 for now
+        elseif plan(1) == 4 && BumpFront
             plan = [5, 1, 6];
             get_back = 1;
         elseif plan(1) == 5
@@ -296,7 +462,6 @@ function final_project(serPort)
                 else
                     door_on_the_left = 1;
                 end
-               disp('I FOUND THE DOOR!!')
                plan = [1, 6];
             end
         elseif plan(1) == 6
@@ -314,7 +479,6 @@ function final_project(serPort)
         end
     end
 
-
     % We update all sensors here
     function updateSensors
         LidarRes = LidarSensorCreate(serPort);
@@ -328,7 +492,7 @@ function final_project(serPort)
         % Check front ~45 degrees
         [LidarMmid, LidarDmid] = min(LidarRes(216:466));
         
-        [Camera, Dist] = CameraSensorCreate(serPort);
+        [Camera, bDist] = CameraSensorCreate(serPort);
 
         SonRead = ReadSonar(serPort, 1);
         if ~any(SonRead) 
@@ -357,6 +521,9 @@ function final_project(serPort)
         else
             SonReF(1) = SonRead;
         end
+        
+        [BumpRight, BumpLeft, WheDropRight, WheDropLeft, WheDropCaster, BumpFront] = BumpsWheelDropsSensorsRoomba(serPort);
+        
     end
 
 end
