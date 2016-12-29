@@ -69,12 +69,13 @@ function final_project(serPort)
     % 1 = face the door of the starting room
     % 2 = exit the starting room
     % 3 = find beacon
-    % 4 = perpendicularly bump the beacon
+    % 4.1 = approach the beacon
+    % 4.2 = perpendicularly bump the beacon
     % 5 = find the entrance to the starting room
     % 6 = reach the goal
     
     % This our plan. The sequence of planned tasks.
-    plan = [ 4, 5, 1, 6];
+    plan = [ 4.1, 4.2, 5, 1, 6];
     
     % Obstacle Avoidance is disabled for now
     obstacle_avoidance = 0;
@@ -151,8 +152,16 @@ function final_project(serPort)
                 if ~obstacle_avoidance
                     wander
                 end
-            % Task-4: Bump the beacon
-            elseif plan(1) == 4
+            % Task-4.1: Approach the beacon
+            elseif plan(1) == 4.1
+                obstacleAvoidance
+                if ~obstacle_avoidance
+                    approachBeacon
+                    bDist = bDist
+                end
+            % Task-4.2: Bump the beacon
+            elseif plan(1) == 4.2
+                SetDriveWheelsCreate(serPort, 0, 0);
                 bumpBeacon
             % Task-6: Reach the goal
             elseif plan(1) == 6
@@ -180,6 +189,14 @@ function final_project(serPort)
         else
             SetDriveWheelsCreate(serPort, 0.5, 0.5);
         end
+    end
+
+    function approachBeacon
+        if (any(Camera) && abs(Camera) > 0.05)
+            turnAngle (serPort, .2, (Camera * 6));
+        end 
+        % Reset straight line and advance
+        SetDriveWheelsCreate(serPort, 0.5, 0.5);
     end
 
     % Planned Task - Bump the beacon!
@@ -214,113 +231,95 @@ function final_project(serPort)
         i2 = 0;
         l_space = 0;
         r_space = 0;
-        if any(Camera) && bDist < 4
+        cam = 0;
+        [c, beacon_laser_index] = min(LidarRes)
+        %if any(Camera) && bDist < 4
             b_cnt = 0;
-            beacon_laser_index = fix(341 + Camera * 180/pi * (681/120))
-            c = min(LidarRes(beacon_laser_index-1:beacon_laser_index+1));
-            
-            
+            cam = Camera * 180/pi
+            %beacon_laser_index = round(341 + Camera * 180/pi * (681/240))
+            %c = min(LidarRes(beacon_laser_index-1:beacon_laser_index+1))
+            bDist = bDist
+            prev_v = c;
+            %LidarRes
+            i1 = beacon_laser_index;
+            i2 = beacon_laser_index;
+            %limit = min (0.5, LidarRes(i)/10)
+            limit = bDist/50;
+            limit = 0.002;
             for i=beacon_laser_index:-1:1
-                limit = min (0.5, LidarRes(i)/4);
-                if (~approx(LidarRes(i),c,limit)) || LidarRes(i) == 4
+                if abs(LidarRes(i)-prev_v) > limit || LidarRes(i) == 4
                    i1 = i+1;
                    break;
                 end
+                prev_v = LidarRes(i);
             end
+            prev_v = c;
             for i=beacon_laser_index:681
-                if (~approx(LidarRes(i),c,limit)) || LidarRes(i) == 4
+                if abs(LidarRes(i)-prev_v) > limit || LidarRes(i) == 4
                    i2 = i-1;
                    break;
                 end
+                prev_v = LidarRes(i);
             end
-            i1
-            i2
+            i1 = i1
+            i2 = i2
+            
+            m = min(LidarRes(i1:i2));
             if i1 > 0 && i2 > 0
                 l1 = LidarRes(i1)
                 l2 = LidarRes(i2)
             end
-            % if the cluster is not big enough
-            if ~approx(i1, i2, 15) && bDist < 2.5 && ~aligned
+            % if the cluster is not big enough (less than 100 laser pings)
+            if abs(i1-i2) < 100
+                disp('small cluster');
                 % Check the side with the most space to move!
-                l_space = sum(LidarRes(341:681));
-                r_space = sum(LidarRes(1:341));
-                if l_space > r_space
-                   %turnAngle(serPort, .2, -5)
-                   left_turn = 1;
-                else
-                   %turnAngle(serPort, .2, 5) 
-                   left_turn = 0;
+%                 l_space = sum(LidarRes(341:681));
+%                 r_space = sum(LidarRes(1:341));
+%                 if l_space > r_space %&& abs(cam) < 40
+%                     disp('LEEEEFT');
+%                    turnAngle(serPort, .2, 5)
+%                    left_turn = 1;
+%                 elseif r_space > l_space %&& abs(cam) < 40
+%                     disp('RIIIIGHT');
+%                    turnAngle(serPort, .2, -5) 
+%                    left_turn = 0;
+%                 end
+                is_left = 1;
+                if beacon_laser_index < 341
+                    is_left = 0;
                 end
-%             else
-%                 for i=beacon_laser_index:-1:1
-%                     if ~approx(LidarRes(i),c,.5)
-%                        i1 = i+1;
-%                        break;
-%                     end
-%                 end
-%                 for i=beacon_laser_index:681
-%                     if ~approx(LidarRes(i),c,.5)
-%                        i2 = i-1;
-%                        break;
-%                     end
-%                 end
+                if is_left && c > 0.6
+                    disp('LEEEEFT');
+                    turnAngle(serPort, .2, 5)
+                elseif ~is_left || c > 0.6
+                    disp('RIIIIGHT');
+                    turnAngle(serPort, .2, -5)
+                end
             else
-                if bDist < 2.5 && ~aligned
-                    disp('WARNING: Bad angle with the wall!!!!!!!');
-                end
-            end
-            
-            if i1 > 0 && i2 > 0
-                sel_index = i1;
+               disp('big cluster! all good!');
+               sel_index = i1;
                 if LidarRes(i2) > LidarRes(i1)
-                   sel_index = i2
+                   sel_index = i2;
                 end
-                if ~approx(l1, l2, 0.05)
-                    ang = -(341-sel_index)*120/681
+                if ~approx(l1, l2, 0.05) && ~aligned
+                    ang = -(341-sel_index)*240/681
                     % If we are close enough, just align with the center of
                     % the wall!
-                    if approx(l1, l2, 0.25) && LidarRes(341) < 0.3
-                        turnAngle(serPort, .2, ang/2);
+                    if approx(l1, l2, 0.05) && LidarRes(341) < 0.3
+                        turnAngle(serPort, .2, ang/4);
                         disp('aligned!');
                         aligned = 1;
                     else
-                       turnAngle(serPort, .2, ang); 
+                       turnAngle(serPort, .2, ang/2); 
                     end
                 end
             end
-            
-            % Reset straight line and advance
-%         elseif ~any(Camera) % The beacon is outside the FOV of the camera!
-%             b_cnt = b_cnt + 1;
-%             if b_cnt >= 5
-%                 disp('beacon?!');
-%                 if left_turn
-%                    turnAngle(serPort, .2, -5);
-%                 else
-%                    turnAngle(serPort, .2, 5); 
-%                 end
-%             end
-        end
-            SetDriveWheelsCreate(serPort, 0.2, 0.2);
-%         %LidarRes
-%         for i=1:681
-%                 if ~approx(LidarRes(i),prev_v,.5) && prev_v < 4 && LidarRes(i) < 4
-%                    if i1 == 0
-%                        i1 = i;
-%                    else
-%                        i2 = i-1;
-%                        if i2 > i1
-%                            i1
-%                            i2
-%                             break;
-%                        else
-%                            i1 = 0;
-%                            i2 = 0;
-%                        end
-%                    end
-%                 end
-%             prev_v = LidarRes(i);
-%         end
+        %end
+        %if abs(cam) < 40
+            SetDriveWheelsCreate(serPort, 0.1, 0.1);
+        %else
+        %   turnAngle(serPort, .2, cam/2); 
+        %end
     end
     
     % Planned Task - Explore the map
@@ -428,31 +427,33 @@ function final_project(serPort)
             if exiting
                 if SonRiF == 100 || SonLF == 100 % The robot is facing down or up!
                     if approx(SonReF,SonFF,.1) && (approx(SonRiF,1.5,.2) || approx(SonLF,1.5,.2))
-                       plan = [1, 2, 3, 4, 5, 1, 6];
+                       plan = [1, 2, 3, 4.1, 4.2, 5, 1, 6];
                     end
                 elseif SonFF == 100 || SonReF == 100 % The robot is facing left or right!
                     if approx(SonRiF,SonLF,.1) && approx(SonFF,2,.2)
-                       plan = [1, 2, 3, 4, 5, 1, 6];
+                       plan = [1, 2, 3, 4.1, 4.2, 5, 1, 6];
                     end
                 elseif approx(SonFF,SonReF,.1) && approx(SonRiF,SonLF,.1)
-                    plan = [1, 2, 3, 4, 5, 1, 6];
+                    plan = [1, 2, 3, 4.1, 4.2, 5, 1, 6];
                 end
             end
         elseif plan(1) == 1
             if exiting && SonFF == 100
-                plan = [2, 3, 4, 5, 1, 6];
+                plan = [2, 3, 4.1, 4.2, 5, 1, 6];
             elseif facing_wall && SonFF == 100
                 t = 1;
                 plan = [6];
             end
         elseif plan(1) == 2 && approx(SonReF,3,.1)
             exiting = 0;
-            plan = [3, 4, 5, 1, 6];
+            plan = [3, 4.1, 4.2, 5, 1, 6];
         elseif plan(1) == 3
             if(any(Camera))
-               plan = [4, 5, 1, 6];
+               plan = [4.1, 4.2, 5, 1, 6];
             end
-        elseif plan(1) == 4 && BumpFront
+        elseif plan(1) == 4.1 & bDist <= 0.8
+            plan = [4.2, 5, 1, 6];
+        elseif plan(1) == 4.2 && BumpFront
             plan = [5, 1, 6];
             get_back = 1;
         elseif plan(1) == 5
