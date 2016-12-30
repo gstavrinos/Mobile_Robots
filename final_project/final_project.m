@@ -75,7 +75,7 @@ function final_project(serPort)
     % 6 = reach the goal
     
     % This our plan. The sequence of planned tasks.
-    plan = [ 4.1, 4.2, 5, 1, 6];
+    plan = [0, 1, 2, 3, 4.1, 4.2, 5, 1, 6];
     
     % Obstacle Avoidance is disabled for now
     obstacle_avoidance = 0;
@@ -88,11 +88,11 @@ function final_project(serPort)
     
     % Variable used to check if the robot is exiting or entering the
     % starting room.
-    exiting = 0;%TODO change to 1 after tests
+    exiting = 1;%TODO change to 1 after tests
     
     % Variable used to check if the beacon is near the door of the starting
     % room.
-    check_surroundings = 0;%TODO change to 1 after tests
+    check_surroundings = 1;%TODO change to 1 after tests
     
     % A counter to estimate (roughly) the angles we have turned during the
     % check_surroundings procedure.
@@ -135,6 +135,7 @@ function final_project(serPort)
         planManager
 
         if size(plan) > 0
+            plan(1)
             % Run the corresponding planned task
             % Task-0: Center in starting room
             % Task-2: Exit the starting room
@@ -146,7 +147,9 @@ function final_project(serPort)
             % Task-3: Search for the beacon
             % Task-5: Search for the entrance
             elseif plan(1) == 3 || plan(1) == 5
-                if ~get_back % Do not try to avoid the bumped 'obstacle!'
+                % Do not try to avoid the bumped 'obstacle'! and the walls
+                % near the door while checking the surroundings
+                if ~get_back && ~check_surroundings
                     obstacleAvoidance
                 end
                 if ~obstacle_avoidance
@@ -157,11 +160,9 @@ function final_project(serPort)
                 obstacleAvoidance
                 if ~obstacle_avoidance
                     approachBeacon
-                    bDist = bDist
                 end
             % Task-4.2: Bump the beacon
             elseif plan(1) == 4.2
-                SetDriveWheelsCreate(serPort, 0, 0);
                 bumpBeacon
             % Task-6: Reach the goal
             elseif plan(1) == 6
@@ -227,13 +228,15 @@ function final_project(serPort)
 %             end
 %             
 %         end
+
+% JUMP HERE!
         i1 = 0;
         i2 = 0;
         l_space = 0;
         r_space = 0;
         cam = 0;
         [c, beacon_laser_index] = min(LidarRes)
-        %if any(Camera) && bDist < 4
+        if c > 0.15 && ~aligned
             b_cnt = 0;
             cam = Camera * 180/pi
             %beacon_laser_index = round(341 + Camera * 180/pi * (681/240))
@@ -270,7 +273,7 @@ function final_project(serPort)
                 l2 = LidarRes(i2)
             end
             % if the cluster is not big enough (less than 100 laser pings)
-            if abs(i1-i2) < 100
+            if abs(i1-i2) < 75
                 disp('small cluster');
                 % Check the side with the most space to move!
 %                 l_space = sum(LidarRes(341:681));
@@ -288,12 +291,17 @@ function final_project(serPort)
                 if beacon_laser_index < 341
                     is_left = 0;
                 end
-                if is_left && c > 0.6
+                if (~is_left && beacon_laser_index > 150)
                     disp('LEEEEFT');
                     turnAngle(serPort, .2, 5)
-                elseif ~is_left || c > 0.6
+                elseif (is_left && beacon_laser_index < 531)
                     disp('RIIIIGHT');
                     turnAngle(serPort, .2, -5)
+                end
+                if beacon_laser_index >= 631
+                    turnAngle(serPort, .2, 2)
+                elseif beacon_laser_index <= 50
+                    turnAngle(serPort, .2, -2)
                 end
             else
                disp('big cluster! all good!');
@@ -306,17 +314,24 @@ function final_project(serPort)
                     % If we are close enough, just align with the center of
                     % the wall!
                     if approx(l1, l2, 0.05) && LidarRes(341) < 0.3
-                        turnAngle(serPort, .2, ang/4);
+                        turnAngle(serPort, .2, ang/12);
                         disp('aligned!');
                         aligned = 1;
                     else
-                       turnAngle(serPort, .2, ang/2); 
+                       turnAngle(serPort, .2, ang/12); 
                     end
                 end
             end
-        %end
+            SetDriveWheelsCreate(serPort, 0.2, 0.2);
+        elseif ~aligned
+            disp('LALALALALALAND');
+            ang = -(341-beacon_laser_index)*240/681
+            turnAngle(serPort, .2, ang);
+            aligned = 1;
+        else
+            SetDriveWheelsCreate(serPort, 0.2, 0.2);
+        end
         %if abs(cam) < 40
-            SetDriveWheelsCreate(serPort, 0.1, 0.1);
         %else
         %   turnAngle(serPort, .2, cam/2); 
         %end
@@ -335,7 +350,9 @@ function final_project(serPort)
             if angle_cnt < 300
                turnAngle(serPort, .2, 10);
                angle_cnt = angle_cnt + 10;
-            elseif approx(LidarMmid,2,.2)
+            % Go forward until you see the wall on the other side, or an
+            % obstacle!
+            elseif approx(LidarMmid,2,.2) 
                 check_surroundings = 0;
             else
                 SetDriveWheelsCreate(serPort, .5, .5);
@@ -453,7 +470,9 @@ function final_project(serPort)
             end
         elseif plan(1) == 4.1 & bDist <= 0.8
             plan = [4.2, 5, 1, 6];
-        elseif plan(1) == 4.2 && BumpFront
+        % Use the other bumpers too, in case the robot fails to bump the
+        % wall 100% perpendicularly
+        elseif plan(1) == 4.2 && (BumpFront || BumpLeft || BumpRight)
             plan = [5, 1, 6];
             get_back = 1;
         elseif plan(1) == 5
