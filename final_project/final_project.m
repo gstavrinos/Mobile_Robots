@@ -88,11 +88,11 @@ function final_project(serPort)
     
     % Variable used to check if the robot is exiting or entering the
     % starting room.
-    exiting = 1;%TODO change to 1 after tests
+    exiting = 1;
     
     % Variable used to check if the beacon is near the door of the starting
     % room.
-    check_surroundings = 1;%TODO change to 1 after tests
+    check_surroundings = 1;
     
     % A counter to estimate (roughly) the angles we have turned during the
     % check_surroundings procedure.
@@ -108,13 +108,6 @@ function final_project(serPort)
     % Variable that states the side of the found door
     door_on_the_left = 1;
     
-    % Variable that states that our last 'blind' turn was a left one
-    left_turn = 0;
-    
-    % Lost beacon counter that is used to make sure that we have really
-    % lost sight of the beacon
-    b_cnt = 0;
-    
     % Variable that states if the robot is aligned with the beacon's wall
     aligned = 0;
 
@@ -123,6 +116,7 @@ function final_project(serPort)
 
         pause(.1)
 
+        % Update sensor readings
         updateSensors
         
         % Reset obstacle avoidance
@@ -135,7 +129,6 @@ function final_project(serPort)
         planManager
 
         if size(plan) > 0
-            plan(1)
             % Run the corresponding planned task
             % Task-0: Center in starting room
             % Task-2: Exit the starting room
@@ -147,7 +140,7 @@ function final_project(serPort)
             % Task-3: Search for the beacon
             % Task-5: Search for the entrance
             elseif plan(1) == 3 || plan(1) == 5
-                % Do not try to avoid the bumped 'obstacle'! and the walls
+                % Do not try to avoid the bumped 'obstacle' and the walls
                 % near the door while checking the surroundings
                 if ~get_back && ~check_surroundings
                     obstacleAvoidance
@@ -192,6 +185,7 @@ function final_project(serPort)
         end
     end
 
+    % Planned Task - Approach the beacon
     function approachBeacon
         if (any(Camera) && abs(Camera) > 0.05)
             turnAngle (serPort, .2, (Camera * 6));
@@ -202,53 +196,15 @@ function final_project(serPort)
 
     % Planned Task - Bump the beacon!
     function bumpBeacon
-        % The simple homing task (without obstacle avoidance) is used as
-        % it was provided.
-%         if (any(Camera) && abs(Camera) > 0.05)
-%             turnAngle (serPort, .2, (Camera * 180/3.1415));
-%         end 
-%        if any(Camera)
-%             if approx(LidarMmid, bDist, .5)
-%                 beacon_laser_index = fix(341 - Camera * 180/3.1415 * (120/681))
-%                 %PID_controller(LidarRes(beacon_laser_index-10),LidarRes(beacon_laser_index+10))
-%                 %PID_controller(max(LidarRes(beacon_laser_index-10:beacon_laser_index)),max(LidarRes(beacon_laser_index:beacon_laser_index+10)))
-%                 min_ = 100;
-%                 max_ = -1;
-%                 for i=beacon_laser_index-10:beacon_laser_index+10
-%                    if 
-%                 end
-%                 min(LidarRes(beacon_laser_index-10:beacon_laser_index+10))
-%                 max(LidarRes(beacon_laser_index-10:beacon_laser_index+10))
-%                 bDist
-%                 %PID_controller(min(LidarRes(beacon_laser_index-10:beacon_laser_index+10)),bDist)
-%             else
-%                 if abs(Camera) > 0.05
-%                     turnAngle (serPort, .2, (Camera * 6));
-%                 end
-%             end
-%             
-%         end
-
-% JUMP HERE!
-        i1 = 0;
-        i2 = 0;
-        l_space = 0;
-        r_space = 0;
-        cam = 0;
-        [c, beacon_laser_index] = min(LidarRes)
+        [c, beacon_laser_index] = min(LidarRes);
+        ang = -(341-beacon_laser_index)*240/681;
         if c > 0.15 && ~aligned
-            b_cnt = 0;
-            cam = Camera * 180/pi
-            %beacon_laser_index = round(341 + Camera * 180/pi * (681/240))
-            %c = min(LidarRes(beacon_laser_index-1:beacon_laser_index+1))
-            bDist = bDist
             prev_v = c;
-            %LidarRes
             i1 = beacon_laser_index;
             i2 = beacon_laser_index;
-            %limit = min (0.5, LidarRes(i)/10)
-            limit = bDist/50;
             limit = 0.002;
+            % Create a cluster using laser scans, for the closest object,
+            % assuming it is the beacon's wall
             for i=beacon_laser_index:-1:1
                 if abs(LidarRes(i)-prev_v) > limit || LidarRes(i) == 4
                    i1 = i+1;
@@ -263,39 +219,20 @@ function final_project(serPort)
                    break;
                 end
                 prev_v = LidarRes(i);
-            end
-            i1 = i1
-            i2 = i2
-            
-            m = min(LidarRes(i1:i2));
+            end            
             if i1 > 0 && i2 > 0
-                l1 = LidarRes(i1)
-                l2 = LidarRes(i2)
+                l1 = LidarRes(i1);
+                l2 = LidarRes(i2);
             end
-            % if the cluster is not big enough (less than 100 laser pings)
+            % if the cluster is not big enough (less than 75 laser pings)
             if abs(i1-i2) < 75
-                disp('small cluster');
-                % Check the side with the most space to move!
-%                 l_space = sum(LidarRes(341:681));
-%                 r_space = sum(LidarRes(1:341));
-%                 if l_space > r_space %&& abs(cam) < 40
-%                     disp('LEEEEFT');
-%                    turnAngle(serPort, .2, 5)
-%                    left_turn = 1;
-%                 elseif r_space > l_space %&& abs(cam) < 40
-%                     disp('RIIIIGHT');
-%                    turnAngle(serPort, .2, -5) 
-%                    left_turn = 0;
-%                 end
                 is_left = 1;
                 if beacon_laser_index < 341
                     is_left = 0;
                 end
                 if (~is_left && beacon_laser_index > 150)
-                    disp('LEEEEFT');
                     turnAngle(serPort, .2, 5)
                 elseif (is_left && beacon_laser_index < 531)
-                    disp('RIIIIGHT');
                     turnAngle(serPort, .2, -5)
                 end
                 if beacon_laser_index >= 631
@@ -304,41 +241,26 @@ function final_project(serPort)
                     turnAngle(serPort, .2, -2)
                 end
             else
-               disp('big cluster! all good!');
-               sel_index = i1;
-                if LidarRes(i2) > LidarRes(i1)
-                   sel_index = i2;
-                end
                 if ~approx(l1, l2, 0.05) && ~aligned
-                    ang = -(341-sel_index)*240/681
-                    % If we are close enough, just align with the center of
-                    % the wall!
+                    % If we are close enough, just align and go!
                     if approx(l1, l2, 0.05) && LidarRes(341) < 0.3
-                        turnAngle(serPort, .2, ang/12);
-                        disp('aligned!');
                         aligned = 1;
-                    else
-                       turnAngle(serPort, .2, ang/12); 
                     end
+                    turnAngle(serPort, .2, ang/12);
                 end
             end
             SetDriveWheelsCreate(serPort, 0.2, 0.2);
         elseif ~aligned
-            disp('LALALALALALAND');
-            ang = -(341-beacon_laser_index)*240/681
             turnAngle(serPort, .2, ang);
             aligned = 1;
         else
             SetDriveWheelsCreate(serPort, 0.2, 0.2);
         end
-        %if abs(cam) < 40
-        %else
-        %   turnAngle(serPort, .2, cam/2); 
-        %end
     end
     
     % Planned Task - Explore the map
     function wander
+        % If we need to start wandering after bumping
         if get_back
             SetDriveWheelsCreate(serPort, 0, 0);
             pause(.1)
@@ -346,6 +268,8 @@ function final_project(serPort)
             pause(.5)
             turnAngle(serPort, .2, 180);
             get_back = 0;
+        % If we just exited the room and we need check if the beacon is
+        % already visible
         elseif check_surroundings
             if angle_cnt < 300
                turnAngle(serPort, .2, 10);
@@ -357,6 +281,7 @@ function final_project(serPort)
             else
                 SetDriveWheelsCreate(serPort, .5, .5);
             end
+        % Normal wandering
         else
            center
         end
@@ -430,9 +355,6 @@ function final_project(serPort)
 
         % Reset straight line and advance
         SetDriveWheelsCreate(serPort, 0.5, 0.5);
-        
-        % This should go inside the plan manager, but let's test it here
-        % for now!
     end
 
     % This is a method that manages the different planned tasks. This could
@@ -470,8 +392,9 @@ function final_project(serPort)
             end
         elseif plan(1) == 4.1 & bDist <= 0.8
             plan = [4.2, 5, 1, 6];
-        % Use the other bumpers too, in case the robot fails to bump the
-        % wall 100% perpendicularly
+        % Use the other bumpers too, in case the robot bumps the wall with
+        % its side bumpers. (Mostly happens when the robot get perpedicular
+        % with the wall, but it is not close enough to the wall's center)
         elseif plan(1) == 4.2 && (BumpFront || BumpLeft || BumpRight)
             plan = [5, 1, 6];
             get_back = 1;
@@ -501,6 +424,7 @@ function final_project(serPort)
 
     % We update all sensors here
     function updateSensors
+        % Read Lidar
         LidarRes = LidarSensorCreate(serPort);
 
         % Read Left side of Lidar
@@ -512,8 +436,10 @@ function final_project(serPort)
         % Check front ~45 degrees
         [LidarMmid, LidarDmid] = min(LidarRes(216:466));
         
+        % Read angle and distance of the detected beacon using the camera
         [Camera, bDist] = CameraSensorCreate(serPort);
 
+        % Read all 4 sonar values
         SonRead = ReadSonar(serPort, 1);
         if ~any(SonRead) 
             SonRiF(1) = 100;
@@ -542,6 +468,7 @@ function final_project(serPort)
             SonReF(1) = SonRead;
         end
         
+        % Read bumper and wheel drop sensors
         [BumpRight, BumpLeft, WheDropRight, WheDropLeft, WheDropCaster, BumpFront] = BumpsWheelDropsSensorsRoomba(serPort);
         
     end
