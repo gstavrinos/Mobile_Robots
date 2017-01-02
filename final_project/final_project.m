@@ -388,6 +388,7 @@ function final_project(serPort)
             plan = [3, 4.1, 4.2, 5, 1, 6];
         elseif plan(1) == 3
             if(any(Camera))
+               check_surroundings = 0;
                plan = [4.1, 4.2, 5, 1, 6];
             end
         elseif plan(1) == 4.1 & bDist <= 0.8
